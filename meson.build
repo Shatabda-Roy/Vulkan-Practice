@@ -6,10 +6,6 @@ inclib1 = 'glfw3'
 inclib2 = 'vulkan-1'
 dep = declare_dependency(
     include_directories : include_directories('include'),
-    version : '1.0',
-    link_args : [
-        '-L' + libdir1, '-l' + inclib1,
-        '-L' + libdir2, '-l' + inclib2
-    ]
+    version : '1.0'
 )
 executable('VulkanApp', sources  : src, dependencies : dep )

@@ -1,4 +1,3 @@
-#pragma once
 #include "VkWindow.h"
 #include "VkPipeline.h"
 namespace app {
@@ -10,6 +9,6 @@ public:
     void run();
 private:
     Window _window{_WIDTH,_HEIGHT,"Vulkan"};
-    Pipeline _pipeline{"shaders/shade.vert.spv","shaders/shade.frag.spv"};
+    //Pipeline _pipeline{"shaders/shade.vert.spv","shaders/shade.frag.spv"};
 };
 } // namespace app
