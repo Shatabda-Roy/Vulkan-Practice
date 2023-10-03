@@ -8,7 +8,8 @@ public:
     static constexpr int _HEIGHT = 480;
     void run();
 private:
-    Window _window{_WIDTH,_HEIGHT,"Vulkan"};
-    //Pipeline _pipeline{"shaders/shade.vert.spv","shaders/shade.frag.spv"};
+    VkWindow _window{_WIDTH,_HEIGHT,"Vulkan"};
+    VkDevice _vkDevice();
+    VkPipeline _pipeline{"shaders/shade.vert.spv","shaders/shade.frag.spv"};
 };
 } // namespace app

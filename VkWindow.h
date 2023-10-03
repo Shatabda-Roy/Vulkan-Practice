@@ -5,13 +5,13 @@
 #include <string>
 
 namespace app{
-class Window {
+class VkWindow {
 public:
-    Window(int w,int h,std::string name);
-    ~Window();
+    VkWindow(int w,int h,std::string name);
+    ~VkWindow();
 
-    Window(const Window &) = delete;
-    Window &operator=(const Window &) = delete;
+    VkWindow(const VkWindow &) = delete;
+    VkWindow &operator=(const VkWindow &) = delete;
 
     bool shouldClose() {return glfwWindowShouldClose(m_window);}
 private:

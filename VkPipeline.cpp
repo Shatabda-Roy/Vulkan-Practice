@@ -2,13 +2,14 @@
 #include <fstream>
 #include <stdexcept>
 #include <iostream>
-app::Pipeline::Pipeline(const std::string& vertFilePath, const std::string& fragFilePath)
+app::VkPipeline::VkPipeline(const std::string& vertFilePath, const std::string& fragFilePath)
 {
     createGraphicsPipeline(vertFilePath,fragFilePath);
 }
-std::vector<char> app::Pipeline::readFile(const std::string& filePath)
+std::vector<char> app::VkPipeline::readFile(const std::string& filePath)
 {
-    std::ifstream file{filePath,std::ios::ate | std::ios::binary};
+    //            path to file    //       ios OpenMode
+    std::ifstream file(filePath, std::ios::ate | std::ios::binary);
     if(!file.is_open()) {
         throw std::runtime_error("failed to open: " + filePath);
     }
@@ -21,7 +22,7 @@ std::vector<char> app::Pipeline::readFile(const std::string& filePath)
     return buffer;
 }
 
-void app::Pipeline::createGraphicsPipeline(const std::string& vertFilePath, const std::string& fragFilePath)
+void app::VkPipeline::createGraphicsPipeline(const std::string& vertFilePath, const std::string& fragFilePath)
 {
     auto vertCode = readFile(vertFilePath);
     auto fragCode = readFile(fragFilePath);
