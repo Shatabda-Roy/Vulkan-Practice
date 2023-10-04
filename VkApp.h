@@ -1,6 +1,7 @@
 #include "VkWindow.h"
 #include "VkPipeline.h"
-namespace app {
+#include "VkDevice.h"
+namespace apparatus {
 class FirstApp
 {
 public:
@@ -9,7 +10,7 @@ public:
     void run();
 private:
     VkWindow _window{_WIDTH,_HEIGHT,"Vulkan"};
-    VkDevice _vkDevice();
+    VkDevice _device{};
     VkPipeline _pipeline{"shaders/shade.vert.spv","shaders/shade.frag.spv"};
 };
 } // namespace app

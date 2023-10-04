@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace app{
+namespace apparatus{
 class VkWindow {
 public:
     VkWindow(int w,int h,std::string name);

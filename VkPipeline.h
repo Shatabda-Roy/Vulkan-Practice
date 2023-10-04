@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace app{
+namespace apparatus{
     class VkPipeline{
     public:
         VkPipeline(const std::string& vertFilePath,const std::string& fragFilePath);

@@ -1,17 +1,18 @@
 #include "VkWindow.h"
+#include <iostream>
 
-app::VkWindow::VkWindow(int w,int h, std::string name) : m_width{w}, m_height{h}, m_windowName {name}
+apparatus::VkWindow::VkWindow(int w,int h, std::string name) : m_width{w}, m_height{h}, m_windowName {name}
 {
     InitWindow();
 }
 
-app::VkWindow::~VkWindow()
+apparatus::VkWindow::~VkWindow()
 {
     glfwDestroyWindow(m_window);
     glfwTerminate();
 }
 
-void app::VkWindow::InitWindow()
+void apparatus::VkWindow::InitWindow()
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API,GLFW_NO_API);

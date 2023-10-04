@@ -2,11 +2,11 @@
 #include <fstream>
 #include <stdexcept>
 #include <iostream>
-app::VkPipeline::VkPipeline(const std::string& vertFilePath, const std::string& fragFilePath)
+apparatus::VkPipeline::VkPipeline(const std::string& vertFilePath, const std::string& fragFilePath)
 {
     createGraphicsPipeline(vertFilePath,fragFilePath);
 }
-std::vector<char> app::VkPipeline::readFile(const std::string& filePath)
+std::vector<char> apparatus::VkPipeline::readFile(const std::string& filePath)
 {
     //            path to file    //       ios OpenMode
     std::ifstream file(filePath, std::ios::ate | std::ios::binary);
@@ -22,11 +22,11 @@ std::vector<char> app::VkPipeline::readFile(const std::string& filePath)
     return buffer;
 }
 
-void app::VkPipeline::createGraphicsPipeline(const std::string& vertFilePath, const std::string& fragFilePath)
+void apparatus::VkPipeline::createGraphicsPipeline(const std::string& vertFilePath, const std::string& fragFilePath)
 {
     auto vertCode = readFile(vertFilePath);
     auto fragCode = readFile(fragFilePath);
 
-    std::cout << "Vertex Shader Code Size: " << vertCode.size() << '\n';
-    std::cout << "Fragment Shader Code Size: " << fragCode.size() << '\n';
+    // std::cout << "Vertex Shader Code Size: " << vertCode.size() << '\n';
+    // std::cout << "Fragment Shader Code Size: " << fragCode.size() << '\n';
 }

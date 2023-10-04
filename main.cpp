@@ -4,14 +4,7 @@
 #include "VkApp.h"
 
 int main() {
-    app::FirstApp _app{};
-
-    try {
-        _app.run();
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
-
+    apparatus::FirstApp _app{};
+    _app.run();
     return EXIT_SUCCESS;
 }
