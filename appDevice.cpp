@@ -3,6 +3,8 @@
 apparatus::InitVulkan::InitVulkan()
 {
     CreateInstance();
+    CreatePhysicalDevice();
+    CreateQueue();
 }
 
 apparatus::InitVulkan::~InitVulkan()
@@ -39,7 +41,45 @@ void apparatus::InitVulkan::CreateInstance()
     }
 }
 
-void apparatus::InitVulkan::CreatePhysicalDevice()
+bool isPhysicalDeviceSuitable(VkPhysicalDevice device)
 {
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceProperties(device,&deviceProperties);
+    vkGetPhysicalDeviceFeatures(device,&deviceFeatures);
     
+    if(deviceFeatures.geometryShader) 
+    {
+        return true;
+    }
+    else 
+    {
+        return false;
+    }
+}
+
+VkResult apparatus::InitVulkan::CreatePhysicalDevice()
+{
+    VkResult result = VK_SUCCESS;
+    result = vkEnumeratePhysicalDevices(instance,&physicalDeviceCount,nullptr);
+    
+    std::vector<VkPhysicalDevice> devices(physicalDeviceCount);
+    
+    result = vkEnumeratePhysicalDevices(instance,&physicalDeviceCount,devices.data());
+    
+    for(VkPhysicalDevice device : devices) {
+        if(isPhysicalDeviceSuitable(device)) {
+            physicalDevice = device;
+            break;
+        }
+    }
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice,&physicalDeviceMemoryProperties);
+    return result;
+}
+void apparatus::InitVulkan::CreateQueue()
+{
+    uint32_t queueFamCount = NULL;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice,&queueFamCount,nullptr);
+    std::vector<VkQueueFamilyProperties> properties(queueFamCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice,&queueFamCount,properties.data());
 }

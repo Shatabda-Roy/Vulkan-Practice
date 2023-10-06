@@ -9,11 +9,12 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/VulkanApp.exe",
-            "args": [],
+            "args": ["cd bin","../meson compile"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
-            "console": "externalTerminal"
+            "console": "externalTerminal",
+            "preLaunchTask": "Build Debug"
         }
 
     ]
