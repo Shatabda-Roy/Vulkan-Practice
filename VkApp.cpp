@@ -1,5 +1,5 @@
 #include "VkApp.h"
-void apparatus::FirstApp::run()
+void apparatus::RApp::run()
 {
     while(!_window.shouldClose()) {
         glfwPollEvents();

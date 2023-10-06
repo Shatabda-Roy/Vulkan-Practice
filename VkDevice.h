@@ -15,11 +15,10 @@ namespace apparatus{
         }
     }
 
-
-    class VkDevice{
+    class RDevice{
     public:
-        VkDevice();
-        ~VkDevice();
+        RDevice(GLFWwindow* window);
+        ~RDevice();
     private:
         static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
         {
@@ -31,12 +30,16 @@ namespace apparatus{
         const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
         };
+        const std::vector<const char*> deviceExtensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        };
 
-        #ifdef NDEBUG
-            const bool enableValidationLayers = false;
-        #else
-            const bool enableValidationLayers = true;
-        #endif
+#ifdef NDEBUG
+    const bool enableValidationLayers = false;
+#else
+    const bool enableValidationLayers = true;
+#endif
+
         bool checkValidationLayerSupport();
         std::vector<const char*> getRequiredExtensions();
         
@@ -48,8 +51,23 @@ namespace apparatus{
 
         void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
         void setupDebugMessenger();
+        void pickPhysicalDevice();
+        bool isDeviceSuitable(VkPhysicalDevice device);
+        bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+        void createLogicalDevice();
+        void createSurface();
+        GLFWwindow* m_window;
+        
         void InitVulkan();
+        
         VkInstance instance;
+        VkSurfaceKHR surface;
+        
         VkDebugUtilsMessengerEXT debugMessenger;
+        
+        VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+        VkDevice device;
+        VkQueue graphicsQueue;
+        VkQueue presentQueue;
     };
 }

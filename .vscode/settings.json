@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
-        "GLFW"
+        "GLFW",
+        "HINSTANCE",
+        "Shatabda's"
     ],
     "C_Cpp.errorSquiggles": "enabled",
     "files.associations": {
@@ -78,6 +80,7 @@
         "xstring": "cpp",
         "xtr1common": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "*.rh": "cpp"
     }
 }

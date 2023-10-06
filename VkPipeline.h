@@ -4,9 +4,9 @@
 #include <vector>
 
 namespace apparatus{
-    class VkPipeline{
+    class RPipeline{
     public:
-        VkPipeline(const std::string& vertFilePath,const std::string& fragFilePath);
+        RPipeline(const std::string& vertFilePath,const std::string& fragFilePath);
 
     private:
         static std::vector<char> readFile(const std::string& filePath);

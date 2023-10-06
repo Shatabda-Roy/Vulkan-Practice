@@ -1,5 +1,7 @@
 project('Vulkan Tutorial','cpp')
-src = ['VkWindow.cpp','VkDevice.cpp','VkPipeline.cpp','VkApp.cpp','main.cpp']
+#src = ['VkWindow.cpp','VkDevice.cpp','VkPipeline.cpp','VkApp.cpp','main.cpp']
+src = ['appWnd.cpp','appDevice.cpp','appMain.cpp']
+
 libdir1 = 'A:\Work\DEVELOPMENT\Vulkan-Practice\lib'
 libdir2 = 'A:\Work\DEVELOPMENT\VulkanSDK\Lib'
 inclib1 = 'glfw3'
@@ -12,4 +14,4 @@ dep = declare_dependency(
     '-L' + libdir2, '-l' + inclib2
     ]
 )
-executable('VulkanApp', sources  : src, dependencies : dep )
+executable('VulkanApp', sources  : src, dependencies : dep, override_options : ['cpp_std=c++20'])
