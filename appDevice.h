@@ -1,23 +1,51 @@
+#define VK_USE_PLATFORM_WIN32_KHR
 #include "vulkan/vulkan.h"
-#include <iostream>
+#include "appWnd.h"
 #include <stdexcept>
 #include <vector>
+#include <string>
 namespace apparatus
 {
     class InitVulkan {
     public:
-        InitVulkan();
+        InitVulkan(HWND hWnd,HINSTANCE hInstance);
         ~InitVulkan();
-        /* As an input, it should be preinitialized with the maximum number
-         of devices your application can handle*/
-        uint32_t physicalDeviceCount = 2;
+
     private:
-        void CreateInstance();
+        VkResult CreateInstance();
         VkResult CreatePhysicalDevice();
-        void CreateQueue();
-        VkInstance instance;
+        VkResult CreateLogicalDevice();
+        VkResult CreateSurface();
+        VkResult CreateSwapChain();
+        void DeviceQueues();
+        VkResult CreateCommands();
+        VkResult CreateFramebuffer();
         
-        VkPhysicalDevice physicalDevice;
-        VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
+        VkInstance m_instance;        
+        uint32_t m_queueFamilyCount;
+        uint32_t m_extensionCount;
+        uint32_t m_physicalDeviceCount;
+        std::vector<VkExtensionProperties> m_allExtensions;
+        std::vector<VkQueueFamilyProperties> m_familyProperties;
+        VkPhysicalDevice m_physicalDevice;
+        VkPhysicalDeviceMemoryProperties m_PDMemoryProperties;
+        
+        VkDevice m_device;
+        VkSurfaceKHR m_surface;
+        HWND m_hWnd;
+        HINSTANCE m_hInstance;
+        VkSwapchainKHR m_swapChain;
+        uint32_t m_width;
+        uint32_t m_height;
+        // Store a pointer to the created image.
+        VkImage* m_presentImages;
+        VkImageView* m_presentImageViews;
+
+        VkCommandBuffer m_drawCmdBuffer;
+        VkQueue m_presentQueue;
+
+        VkFramebuffer* m_frameBuffers = NULL;
+        VkRenderPass m_renderPass = NULL;
+        
     };
 } // namespace apparatus
