@@ -1,13 +1,12 @@
 #include "appWnd.h"
 
-apparatus::InitWindow::InitWindow(HINSTANCE hInstance,HWND hWnd,int nCmdShow,LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)) : m_hInstance{hInstance}, m_hWnd{hWnd}, m_nCmdShow{nCmdShow}
+apparatus::InitWindow::InitWindow(HINSTANCE hInstance,int nCmdShow,LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)) : m_hInstance{hInstance}, m_nCmdShow{nCmdShow}
 {
 	MakeWindow(WindowProc);
 }
 
 apparatus::InitWindow::~InitWindow()
 {
-	m_hWnd = nullptr;
 }
 
 void apparatus::InitWindow::MakeWindow(LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam))
@@ -36,8 +35,8 @@ void apparatus::InitWindow::MakeWindow(LRESULT CALLBACK WndProc(HWND hwnd, UINT 
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 	/* rc converted into a whole window coords from client coords */
 
-	m_hWnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW, wc.lpszClassName, m_windowName,WS_OVERLAPPEDWINDOW , 0, 0, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, m_hInstance, nullptr);
-	assert(m_hWnd);
-	ShowWindow(m_hWnd, m_nCmdShow);
-	UpdateWindow(m_hWnd);
+	g_hWnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW, wc.lpszClassName, m_windowName,WS_OVERLAPPEDWINDOW , 0, 0, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, m_hInstance, nullptr);
+	assert(g_hWnd);
+	ShowWindow(g_hWnd, m_nCmdShow);
+	UpdateWindow(g_hWnd);
 }

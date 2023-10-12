@@ -14,4 +14,4 @@ dep = declare_dependency(
     '-L' + libdir2, '-l' + inclib2
     ]
 )
-executable('VulkanApp', sources  : src, dependencies : dep, override_options : ['cpp_std=c++20'])
+executable('app', sources  : src, dependencies : dep, override_options : ['cpp_std=c++20'], gui_app: true)
