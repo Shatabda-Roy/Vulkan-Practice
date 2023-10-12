@@ -82,5 +82,6 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "*.rh": "cpp"
-    }
+    },
+    "mesonbuild.configureOnOpen": true
 }
