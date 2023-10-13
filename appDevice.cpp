@@ -17,6 +17,13 @@ apparatus::InitVulkan::InitVulkan(HWND hWnd,HINSTANCE hInstance) : m_hWnd{hWnd},
         abort();
     }
     try {
+        DeviceQueues();
+    }
+    catch(const std::runtime_error& e) {
+        std::cerr << e.what() << '\n';
+        abort();
+    }
+    try {
         CreateLogicalDevice();
     }
     catch(const std::runtime_error& e) {
@@ -37,16 +44,10 @@ apparatus::InitVulkan::InitVulkan(HWND hWnd,HINSTANCE hInstance) : m_hWnd{hWnd},
         std::cerr << e.what() << '\n';
         abort();
     }
-    try {
-        DeviceQueues();
-    }
-    catch(const std::runtime_error& e) {
-        std::cerr << e.what() << '\n';
-        abort();
-    }
+
     try
     {
-        CreateCommands();        
+        CreateCommandBuffer();        
     }
     catch(const std::runtime_error& e)
     {
@@ -69,6 +70,8 @@ apparatus::InitVulkan::~InitVulkan()
 {
     vkDestroyInstance(m_instance,nullptr);
 }
+
+
 
 VkResult apparatus::InitVulkan::CreateInstance()
 {
@@ -135,11 +138,6 @@ VkResult apparatus::InitVulkan::CreateLogicalDevice()
 {
     VkResult result = VK_SUCCESS;
 
-    uint32_t queueFamilyCount = NULL;
-    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice,&queueFamilyCount,nullptr);
-    std::vector<VkQueueFamilyProperties> queueFamiliyList(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice,&queueFamilyCount,&queueFamiliyList[0]);
-
     /* Mandatory for VkDeviceCreateInfo */
     VkDeviceQueueCreateInfo queueInfo{};
 
@@ -174,7 +172,7 @@ VkResult apparatus::InitVulkan::CreateLogicalDevice()
     deviceFeatures.shaderClipDistance = VK_TRUE;
     deviceInfo.pEnabledFeatures = &deviceFeatures;
 
-    result = vkCreateDevice(m_physicalDevice,&deviceInfo,nullptr,&m_device);
+    result = vkCreateDevice(m_physicalDevice,&deviceInfo,nullptr,&g_device);
     if(result != VK_SUCCESS) {
         throw std::runtime_error("Couldn't create a Logical Device");
     }
@@ -192,7 +190,7 @@ VkResult apparatus::InitVulkan::CreateSurface()
     surfaceInfo.hinstance = m_hInstance;
     surfaceInfo.pNext = nullptr;
 
-    result = vkCreateWin32SurfaceKHR(m_instance,&surfaceInfo,nullptr,&m_surface);
+    result = vkCreateWin32SurfaceKHR(m_instance,&surfaceInfo,nullptr,&g_surface);
     if(result != VK_SUCCESS) {
         throw std::runtime_error("Couldn't create a Surface");
     }
@@ -204,15 +202,15 @@ VkResult apparatus::InitVulkan::CreateSwapChain()
     VkResult result = VK_SUCCESS;
 
     VkSurfaceCapabilitiesKHR surfCapabilities{};
-    result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice,m_surface,&surfCapabilities);
+    result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice,g_surface,&surfCapabilities);
 
     VkExtent2D surfaceResolution = surfCapabilities.currentExtent;
-    m_width = surfaceResolution.width;
-    m_height = surfaceResolution.height;
+    g_width = surfaceResolution.width;
+    g_height = surfaceResolution.height;
 
     VkSwapchainCreateInfoKHR swapChainInfo{};
     swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapChainInfo.surface = m_surface;
+    swapChainInfo.surface = g_surface;
     swapChainInfo.minImageCount = surfCapabilities.minImageCount;
     swapChainInfo.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
     swapChainInfo.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
@@ -226,16 +224,16 @@ VkResult apparatus::InitVulkan::CreateSwapChain()
     swapChainInfo.clipped = true;
     swapChainInfo.oldSwapchain = NULL;
 
-    result = vkCreateSwapchainKHR(m_device,&swapChainInfo,nullptr,&m_swapChain);
+    result = vkCreateSwapchainKHR(g_device,&swapChainInfo,nullptr,&g_swapChain);
     if(result != VK_SUCCESS) {
         throw std::runtime_error("Couldn't create Swapchain");
     }
 
     uint32_t imageCount = 0;
-    result = vkGetSwapchainImagesKHR(m_device,m_swapChain,&imageCount,NULL);
+    result = vkGetSwapchainImagesKHR(g_device,g_swapChain,&imageCount,NULL);
     assert(imageCount == 2);
     m_presentImages = new VkImage[2];
-    result = vkGetSwapchainImagesKHR(m_device,m_swapChain,&imageCount,m_presentImages);
+    result = vkGetSwapchainImagesKHR(g_device,g_swapChain,&imageCount,m_presentImages);
     
     // handle for our images.
     m_presentImageViews = new VkImageView[2];
@@ -257,8 +255,7 @@ VkResult apparatus::InitVulkan::CreateSwapChain()
         viewCreateInfo.subresourceRange.layerCount = 1;
         viewCreateInfo.image = m_presentImages[i];
 
-        result = vkCreateImageView(m_device,&viewCreateInfo,nullptr,&m_presentImageViews[i]);
-
+        result = vkCreateImageView(g_device,&viewCreateInfo,nullptr,&m_presentImageViews[i]);
     }
     return result;
 }
@@ -268,44 +265,52 @@ void apparatus::InitVulkan::DeviceQueues()
     vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice,&m_queueFamilyCount,nullptr);
     m_familyProperties.resize(m_queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice,&m_queueFamilyCount,&m_familyProperties[0]);
-    for(uint32_t i = 0; i < m_physicalDeviceCount; i++) {
-        for(uint32_t j = 0; j < m_queueFamilyCount; j++) {
-            std::cout << "Count of Queues : " << m_familyProperties[j].queueCount << '\n';
-            std::cout << "Supported opertation on this queue" << '\n';
-            if(m_familyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                std::cout << "Graphics" << '\n';
-            }
-            if(m_familyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) {
-                std::cout << "Compute" << '\n';
-            }
-            if(m_familyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) {
-                std::cout << "Transfer" << '\n';
-            }
-            if(m_familyProperties[j].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) {
-                std::cout << "Sparse Binding" << '\n';
-            }
-            std::cout << '\n';
-        }
-    }
+
+    // for(uint32_t i = 0; i < m_physicalDeviceCount; i++) {
+    //     for(uint32_t j = 0; j < m_queueFamilyCount; j++) {
+    //         std::cout << "Count of Queues : " << m_familyProperties[j].queueCount << '\n';
+    //         std::cout << "Supported opertation on this queue" << '\n';
+    //         if(m_familyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+    //             std::cout << "Graphics" << '\n';
+    //         }
+    //         if(m_familyProperties[j].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+    //             std::cout << "Compute" << '\n';
+    //         }
+    //         if(m_familyProperties[j].queueFlags & VK_QUEUE_TRANSFER_BIT) {
+    //             std::cout << "Transfer" << '\n';
+    //         }
+    //         if(m_familyProperties[j].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) {
+    //             std::cout << "Sparse Binding" << '\n';
+    //         }
+    //         std::cout << '\n';
+    //     }
+    // }
 }
 
-VkResult apparatus::InitVulkan::CreateCommands()
+VkResult apparatus::InitVulkan::CreateCommandBuffer()
 {
     VkResult result = VK_SUCCESS;
-    vkGetDeviceQueue(m_device,0,0,&m_presentQueue);
+    // Get the device queue on which we will be submitting our work.
+    vkGetDeviceQueue(g_device,0,0,&g_presentQueue);
+
     VkCommandPoolCreateInfo cmdPoolInfo{};
     cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     cmdPoolInfo.queueFamilyIndex = 0;
+    
+    // store query result.
     VkCommandPool commandPool;
-    result = vkCreateCommandPool(m_device,&cmdPoolInfo,nullptr,&commandPool);
+    result = vkCreateCommandPool(g_device,&cmdPoolInfo,nullptr,&commandPool);
 
     VkCommandBufferAllocateInfo cmdBufferAllocInfo{};
     cmdBufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     cmdBufferAllocInfo.commandPool = commandPool;
     cmdBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cmdBufferAllocInfo.commandBufferCount = 1;
-    result = vkAllocateCommandBuffers(m_device,&cmdBufferAllocInfo,&m_drawCmdBuffer);
+    result = vkAllocateCommandBuffers(g_device,&cmdBufferAllocInfo,&g_drawCmdBuffer);
+    if(result != VK_SUCCESS) {
+        throw std::runtime_error("Couldn't create a Command Buffer");
+    }
     return result;
 }
 
@@ -339,26 +344,114 @@ VkResult apparatus::InitVulkan::CreateFramebuffer()
     renderPassInfo.pAttachments = pass;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
-    result = vkCreateRenderPass(m_device,&renderPassInfo,nullptr,&m_renderPass);
+    result = vkCreateRenderPass(g_device,&renderPassInfo,nullptr,&g_renderPass);
 
     // Create our framebuffer.
     VkImageView frameBufferAttachments[1] = {0};
     VkFramebufferCreateInfo frameBufferInfo{};
     frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO;
-    frameBufferInfo.renderPass = m_renderPass;
+    frameBufferInfo.renderPass = g_renderPass;
     frameBufferInfo.attachmentCount = 1;
     frameBufferInfo.pAttachments = frameBufferAttachments;
-    frameBufferInfo.width = m_width;
-    frameBufferInfo.height = m_height;
+    frameBufferInfo.width = g_width;
+    frameBufferInfo.height = g_height;
     frameBufferInfo.layers = 1;
 
     // Create a framebuffer per swap chain imageView.
-    m_frameBuffers = new VkFramebuffer[2];
+    g_frameBuffers = new VkFramebuffer[2];
     for(uint32_t i = 0; i < 2; i++) {
         frameBufferAttachments[0] = m_presentImageViews[ i ];
-        result = vkCreateFramebuffer(m_device,&frameBufferInfo,nullptr,&m_frameBuffers[i]);
+        result = vkCreateFramebuffer(g_device,&frameBufferInfo,nullptr,&g_frameBuffers[i]);
 
     }
+    if(result != VK_SUCCESS) {
+        throw std::runtime_error("Couldn't create a framebuffer");
+    }
+    return result;
+}
+
+VkResult apparatus::InitVulkan::render() {
+    VkResult result;
+    uint32_t nextImageIdx;
+
+    result = vkAcquireNextImageKHR(g_device,g_swapChain,UINT64_MAX,VK_NULL_HANDLE,VK_NULL_HANDLE,&nextImageIdx);
     
+    // buffer commands.
+    VkCommandBufferBeginInfo cmdBeginInfo={};
+    cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    // start recoding.
+    result = vkBeginCommandBuffer(g_drawCmdBuffer,&cmdBeginInfo);
+    {
+        /* Temporary float that oscilates between 0 and 1, to gradually change color on the screen*/
+        static float aa = 0;
+        // slowly incrememnt.
+        aa += 0.001f;
+        // when value reaches 1 reset to 0.
+        if ( aa >= 1) {
+            aa = 0;
+        }
+        // activate render pass.
+        VkClearValue clearValue[] = {
+            {1,aa,1,1}, {1,1}
+        };
+        // define render pass structure
+        VkRenderPassBeginInfo rendPassBeginInfo{};
+        rendPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rendPassBeginInfo.renderPass = g_renderPass;
+        /* Which image to draw upon ( use the ID from the swap-chain look up we did at the start)*/
+        rendPassBeginInfo.framebuffer = g_frameBuffers[nextImageIdx];
+        VkOffset2D a = {0,0};
+        VkExtent2D b = {g_width,g_height};
+        VkRect2D _rect = {a,b};
+        rendPassBeginInfo.renderArea = _rect;
+        rendPassBeginInfo.clearValueCount = 2;
+        rendPassBeginInfo.pClearValues = clearValue;
+        // command to start a render pass
+        vkCmdBeginRenderPass(g_drawCmdBuffer,&rendPassBeginInfo,VK_SUBPASS_CONTENTS_INLINE);
+        {
+            /*To come later - call draw commands, to present geometry data/triangles.*/
+        }
+        vkCmdEndRenderPass(g_drawCmdBuffer);
+    }
+    // end recoding commands.
+    result = vkEndCommandBuffer(g_drawCmdBuffer);
+    /*prsent: 
+        create a fence to inform us when the gpu has finished
+        processing our commands.                             */
+    
+    // setup the type of fence.
+    VkFence renderFence;
+    VkFenceCreateInfo fenceCreateInfo{};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    result = vkCreateFence(g_device,&fenceCreateInfo,nullptr,&renderFence);
+    
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = 0;
+    submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
+    submitInfo.pWaitDstStageMask = NULL;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &g_drawCmdBuffer;
+    submitInfo.signalSemaphoreCount = 0;
+    submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
+
+    // submit the command queue (notice, we also pass the fence, to let us know the gpu has finished)
+    result = vkQueueSubmit(g_presentQueue,1,&submitInfo,renderFence);
+    
+    // wait until the gpu has finished processing the commands.
+    result = vkWaitForFences(g_device,1,&renderFence,VK_TRUE,UINT64_MAX);
+    vkDestroyFence(g_device,renderFence,NULL);
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.pNext = NULL;
+    presentInfo.waitSemaphoreCount = 0;
+    presentInfo.pWaitSemaphores = VK_NULL_HANDLE;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &g_swapChain;
+    presentInfo.pImageIndices = &nextImageIdx;
+    presentInfo.pResults = NULL;
+    result = vkQueuePresentKHR(g_presentQueue,&presentInfo);
     return result;
 }

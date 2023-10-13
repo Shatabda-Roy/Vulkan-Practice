@@ -10,7 +10,16 @@ namespace apparatus
     public:
         InitVulkan(HWND hWnd,HINSTANCE hInstance);
         ~InitVulkan();
-
+        VkDevice g_device;
+        VkSurfaceKHR g_surface;
+        VkSwapchainKHR g_swapChain;
+        VkCommandBuffer g_drawCmdBuffer;
+        VkRenderPass g_renderPass;
+        VkFramebuffer* g_frameBuffers;
+        uint32_t g_width;
+        uint32_t g_height;
+        VkQueue g_presentQueue;
+        VkResult render();
     private:
         VkResult CreateInstance();
         VkResult CreatePhysicalDevice();
@@ -18,7 +27,7 @@ namespace apparatus
         VkResult CreateSurface();
         VkResult CreateSwapChain();
         void DeviceQueues();
-        VkResult CreateCommands();
+        VkResult CreateCommandBuffer();
         VkResult CreateFramebuffer();
         
         VkInstance m_instance;        
@@ -30,22 +39,13 @@ namespace apparatus
         VkPhysicalDevice m_physicalDevice;
         VkPhysicalDeviceMemoryProperties m_PDMemoryProperties;
         
-        VkDevice m_device;
-        VkSurfaceKHR m_surface;
         HWND m_hWnd;
         HINSTANCE m_hInstance;
-        VkSwapchainKHR m_swapChain;
-        uint32_t m_width;
-        uint32_t m_height;
+
+
         // Store a pointer to the created image.
         VkImage* m_presentImages;
         VkImageView* m_presentImageViews;
-
-        VkCommandBuffer m_drawCmdBuffer;
-        VkQueue m_presentQueue;
-
-        VkFramebuffer* m_frameBuffers = NULL;
-        VkRenderPass m_renderPass = NULL;
         
     };
 } // namespace apparatus

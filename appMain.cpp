@@ -3,6 +3,7 @@ HWND        g_hWnd;
 bool g_shouldClose = false;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+void Render(apparatus::InitVulkan vulkan);
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
@@ -15,6 +16,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     apparatus::InitWindow _window{hInstance, SW_SHOW, WindowProc};
     g_hWnd = _window.g_hWnd;
     apparatus::InitVulkan _vulkan{g_hWnd,hInstance};
+    auto kk = _vulkan;
     
     MSG msg = { };
     
@@ -24,6 +26,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
             TranslateMessage(&msg);
             DispatchMessage(&msg);    
         }
+        _vulkan.render();
     }
     return EXIT_SUCCESS;
 }
