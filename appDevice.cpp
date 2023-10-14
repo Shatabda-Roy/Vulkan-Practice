@@ -409,8 +409,88 @@ VkResult apparatus::InitVulkan::render() {
         rendPassBeginInfo.pClearValues = clearValue;
         // command to start a render pass
         vkCmdBeginRenderPass(g_drawCmdBuffer,&rendPassBeginInfo,VK_SUBPASS_CONTENTS_INLINE);
+        
+        /* call draw commands, to present geometry data/triangles.*/
         {
-            /*To come later - call draw commands, to present geometry data/triangles.*/
+            struct vertex {
+                float x,y,z,w; // position.
+                float r,g,b;   // color.
+            };
+            VkBufferCreateInfo vertexInputBufferInfo{};
+            vertexInputBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            vertexInputBufferInfo.size = sizeof(vertex) * 3;
+            // what the buffer will hold.
+            vertexInputBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            // sharing/access level.
+            vertexInputBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            // create the buffer.
+            VkResult result = vkCreateBuffer(g_device,&vertexInputBufferInfo,nullptr,&m_vertexInputBuffer);
+            if(result != VK_SUCCESS) {
+                throw std::runtime_error("Couldn't Create a vertex buffer.");
+            }
+            /* allocate memory for buffers :
+                Get the memory information - type of memory required.
+                for our vertex buffer (we can't put the data just anywere)*/
+
+            VkMemoryRequirements vertBufferMemReq{};
+            vkGetBufferMemoryRequirements(g_device,m_vertexInputBuffer,&vertBufferMemReq);
+            VkMemoryAllocateInfo bufferAllocateInfo{};
+            bufferAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            bufferAllocateInfo.allocationSize = vertBufferMemReq.size;
+            bufferAllocateInfo.pNext = nullptr;
+            // the memory our vertex needs.
+            uint32_t vertexmemoryTypeBits = vertBufferMemReq.memoryTypeBits;
+            VkMemoryPropertyFlags vertexDesiredMemoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+            VkPhysicalDeviceMemoryProperties memoryProperties;
+            vkGetPhysicalDeviceMemoryProperties(m_physicalDevice,&memoryProperties);
+            /* Check each of the memory types and store the one we want. */
+            for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
+            {
+                VkMemoryType memoryType = memoryProperties.memoryTypes[i];
+                // is this the memroy type we are looking for?
+                if(memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT){
+                    // Save location
+                    bufferAllocateInfo.memoryTypeIndex = i;
+                    // exit loop.
+                }
+            }
+            VkDeviceMemory vertexBufferMemory;
+            result = vkAllocateMemory(g_device,&bufferAllocateInfo,nullptr,&vertexBufferMemory);
+            if(result != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate buffer mmeory");
+            }
+            // temporary pointer
+            void *mapped;
+            /* lock memor and set the temp pointer to point to the memory we want to write to*/
+            result = vkMapMemory(g_device,vertexBufferMemory,0,VK_WHOLE_SIZE,0,&mapped);
+            if(result != VK_SUCCESS) {
+                throw std::runtime_error("Failed to map buffer memory.");
+            }
+            // cast our temp pointer to a vertex type.
+            vertex *triangle = (vertex*) mapped;
+            /* Define our triangle vertices facing down the z-axis.*/
+            vertex v1 =
+            {
+                 -1.0f, -1.0f, 0.0f, 1.0f, // position
+                0.0f, 1.0f, 0.0f           // color
+            };
+            vertex v2 =
+            {
+                 1.0f, -1.0f, 0.0f, 1.0f,
+                1.0f, 0.0f, 0.0f
+            };
+            vertex v3 =
+            {
+                 0.0f, 1.0f, 0.0f, 1.0f,
+                0.0f, 0.0f, 1.0f
+            };
+            /* set triangle vertices on our locked allocated buffer. */
+            triangle[0] = v1;
+            triangle[1] = v2;
+            triangle[2] = v3;
+            vkUnmapMemory(g_device,vertexBufferMemory);
+            result = vkBindBufferMemory(g_device,m_vertexInputBuffer,vertexBufferMemory,0);
         }
         vkCmdEndRenderPass(g_drawCmdBuffer);
     }

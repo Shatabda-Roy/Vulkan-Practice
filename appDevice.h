@@ -46,6 +46,7 @@ namespace apparatus
         // Store a pointer to the created image.
         VkImage* m_presentImages;
         VkImageView* m_presentImageViews;
+        VkBuffer m_vertexInputBuffer;
         
     };
 } // namespace apparatus
