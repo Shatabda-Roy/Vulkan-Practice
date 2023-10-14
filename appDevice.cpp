@@ -4,74 +4,40 @@ apparatus::InitVulkan::InitVulkan(HWND hWnd,HINSTANCE hInstance) : m_hWnd{hWnd},
 {
     try {
         CreateInstance();
-    }
-    catch(const std::runtime_error& e) {
-        std::cerr << e.what() << '\n';
-        abort();
-    }
-    try {
+        SetupDebugMessenger();
         CreatePhysicalDevice();
-    }
-    catch(const std::runtime_error& e) {
-        std::cerr << e.what() << '\n';
-        abort();
-    }
-    try {
-        DeviceQueues();
-    }
-    catch(const std::runtime_error& e) {
-        std::cerr << e.what() << '\n';
-        abort();
-    }
-    try {
+        //DeviceQueues();
         CreateLogicalDevice();
-    }
-    catch(const std::runtime_error& e) {
-        std::cerr << e.what() << '\n';
-        abort();
-    }
-    try {
         CreateSurface();
-    }
-    catch(const std::runtime_error& e) {
-        std::cerr << e.what() << '\n';
-        abort();
-    }
-    try {
         CreateSwapChain();
+        CreateCommandBuffer();
+        //CreateFramebuffer();
+
     }
     catch(const std::runtime_error& e) {
         std::cerr << e.what() << '\n';
-        abort();
+        exit(69);
     }
-
-    try
-    {
-        CreateCommandBuffer();        
-    }
-    catch(const std::runtime_error& e)
-    {
-        std::cerr << e.what() << '\n';
-        abort();
-    }
-    try
-    {
-        CreateFramebuffer();        
-    }
-    catch(const std::runtime_error& e)
-    {
-        std::cerr << e.what() << '\n';
-        abort();
-    }
-    
 }
 
 apparatus::InitVulkan::~InitVulkan()
 {
+    DestroyDebugUtilsMessengerEXT(m_instance,m_debugMessenger,nullptr);
+    vkDestroyDevice(g_device,nullptr);
+    vkDestroySurfaceKHR(m_instance,g_surface,nullptr);
     vkDestroyInstance(m_instance,nullptr);
 }
+static uint32_t __stdcall debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData)
+    {
+    
+    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
-
+    return VK_FALSE;
+}
 
 VkResult apparatus::InitVulkan::CreateInstance()
 {
@@ -91,29 +57,74 @@ VkResult apparatus::InitVulkan::CreateInstance()
     result = vkEnumerateInstanceLayerProperties(&instLayerCount,nullptr);
     std::vector<VkLayerProperties> instLayerList(instLayerCount);
     result = vkEnumerateInstanceLayerProperties(&instLayerCount,&instLayerList[0]);
-    const char* layers[] = {instLayerList[0].layerName};
-
+    std::vector<const char*> layers = {
+        instLayerList[0].layerName, instLayerList[10].layerName
+    };
     uint32_t instExtCount = NULL;
     result = vkEnumerateInstanceExtensionProperties(nullptr,&instExtCount,nullptr);
     std::vector<VkExtensionProperties> instExtList(instExtCount);
     result = vkEnumerateInstanceExtensionProperties(nullptr,&instExtCount,&instExtList[0]);
-    const char* extensions[] = {instExtList[8].extensionName,instExtList[10].extensionName};
+    std::vector<const char*> extensions = {
+        instExtList[8].extensionName,instExtList[10].extensionName,instExtList[12].extensionName
+    };
 
     VkInstanceCreateInfo createInfo{};
     /* Structure Tag for validation purposes */
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     /* Allows parameters to be extended */
-    createInfo.pNext = nullptr;
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+    PopulateDebugMessengerCreateInfo(debugCreateInfo);
+    createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
     createInfo.pApplicationInfo = &appInfo;
     /* Layers are used to intercept the Vulkan API and provide logging, Profiling, Debugging,
      and other additional features*/
-    createInfo.enabledLayerCount = 1;
-    createInfo.ppEnabledLayerNames = layers;
-    createInfo.enabledExtensionCount = 2;
-    createInfo.ppEnabledExtensionNames = extensions;
+    createInfo.enabledLayerCount = layers.size();
+    createInfo.ppEnabledLayerNames = layers.data();
+    createInfo.enabledExtensionCount = extensions.size();
+    createInfo.ppEnabledExtensionNames = extensions.data();
     result = vkCreateInstance(&createInfo,nullptr,&m_instance);
     if( result != VK_SUCCESS) {
         throw std::runtime_error("Couldn't create an instance.");
+    }
+    return result;
+}
+VkResult apparatus::InitVulkan::CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger)
+{
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    } else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+void apparatus::InitVulkan::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator)
+{
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        func(instance, debugMessenger, pAllocator);
+    }
+}
+void apparatus::InitVulkan::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo)
+{
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+    | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
+    createInfo.pUserData = nullptr;
+}
+
+VkResult apparatus::InitVulkan::SetupDebugMessenger()
+{
+    VkResult result = VK_SUCCESS;
+    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+    PopulateDebugMessengerCreateInfo(createInfo);
+    
+    //auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT");
+    //result = func(m_instance,&createInfo,nullptr,&m_debugMessenger);
+    CreateDebugUtilsMessengerEXT(m_instance,&createInfo,nullptr,&m_debugMessenger);
+    if(result != VK_SUCCESS) {
+        throw std::runtime_error("Couldn't setup a debug messenger");
     }
     return result;
 }
@@ -122,6 +133,7 @@ VkResult apparatus::InitVulkan::CreatePhysicalDevice()
 {
     VkResult result = VK_SUCCESS;
     
+    uint32_t m_physicalDeviceCount;
     result = vkEnumeratePhysicalDevices(m_instance,&m_physicalDeviceCount,nullptr);
     std::vector<VkPhysicalDevice> allPhysicalDevices(m_physicalDeviceCount);
     result = vkEnumeratePhysicalDevices(m_instance,&m_physicalDeviceCount,&allPhysicalDevices[0]);
@@ -130,7 +142,6 @@ VkResult apparatus::InitVulkan::CreatePhysicalDevice()
         throw std::runtime_error("Couldn't Create a Physical Device");
     }
     m_physicalDevice = allPhysicalDevices[0];
-
     return result;
 }
 
@@ -194,6 +205,8 @@ VkResult apparatus::InitVulkan::CreateSurface()
     if(result != VK_SUCCESS) {
         throw std::runtime_error("Couldn't create a Surface");
     }
+
+
     return VkResult();
 }
 
@@ -207,12 +220,18 @@ VkResult apparatus::InitVulkan::CreateSwapChain()
     VkExtent2D surfaceResolution = surfCapabilities.currentExtent;
     g_width = surfaceResolution.width;
     g_height = surfaceResolution.height;
+    
+    uint32_t surfaceFormatCount;
+    result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice,g_surface,&surfaceFormatCount,nullptr);
+    std::vector<VkSurfaceFormatKHR> formatList(surfaceFormatCount);
+    result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice,g_surface,&surfaceFormatCount,formatList.data());
+    g_imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
 
     VkSwapchainCreateInfoKHR swapChainInfo{};
     swapChainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapChainInfo.surface = g_surface;
     swapChainInfo.minImageCount = surfCapabilities.minImageCount;
-    swapChainInfo.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    swapChainInfo.imageFormat = g_imageFormat;
     swapChainInfo.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
     swapChainInfo.imageExtent = surfCapabilities.currentExtent;
     swapChainInfo.imageArrayLayers = 1;
@@ -238,12 +257,12 @@ VkResult apparatus::InitVulkan::CreateSwapChain()
     // handle for our images.
     m_presentImageViews = new VkImageView[2];
 
-    for(uint32_t i = 0; i < 2; i++) {
+    for(uint32_t i = 0; i < imageCount; i++) {
         // create image view for our swapchain.
         VkImageViewCreateInfo viewCreateInfo{};
         viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        viewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        viewCreateInfo.format = g_imageFormat;
         viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
         viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
         viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
@@ -266,7 +285,7 @@ void apparatus::InitVulkan::DeviceQueues()
     m_familyProperties.resize(m_queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice,&m_queueFamilyCount,&m_familyProperties[0]);
 
-    // for(uint32_t i = 0; i < m_physicalDeviceCount; i++) {
+    // for(uint32_t i = 0; i < 1; i++) {
     //     for(uint32_t j = 0; j < m_queueFamilyCount; j++) {
     //         std::cout << "Count of Queues : " << m_familyProperties[j].queueCount << '\n';
     //         std::cout << "Supported opertation on this queue" << '\n';
@@ -317,8 +336,9 @@ VkResult apparatus::InitVulkan::CreateCommandBuffer()
 VkResult apparatus::InitVulkan::CreateFramebuffer()
 {
     VkResult result = VK_SUCCESS;
+
     VkAttachmentDescription pass[1] = {};
-    pass[0].format = VK_FORMAT_R8G8B8A8_UNORM;
+    pass[0].format = g_imageFormat;
     pass[0].samples = VK_SAMPLE_COUNT_1_BIT;
     pass[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     pass[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -337,6 +357,7 @@ VkResult apparatus::InitVulkan::CreateFramebuffer()
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &attachmentRef;
     subpass.pDepthStencilAttachment = nullptr;
+
     // create our main renderpass.
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -379,7 +400,10 @@ VkResult apparatus::InitVulkan::render() {
     // buffer commands.
     VkCommandBufferBeginInfo cmdBeginInfo={};
     cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    /*specifies that each recording of the command buffer will only be submitted once,
+     and the command buffer will be reset and recorded again between each submission.*/
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
     // start recoding.
     result = vkBeginCommandBuffer(g_drawCmdBuffer,&cmdBeginInfo);
     {
@@ -407,10 +431,94 @@ VkResult apparatus::InitVulkan::render() {
         rendPassBeginInfo.renderArea = _rect;
         rendPassBeginInfo.clearValueCount = 2;
         rendPassBeginInfo.pClearValues = clearValue;
+        
         // command to start a render pass
         vkCmdBeginRenderPass(g_drawCmdBuffer,&rendPassBeginInfo,VK_SUBPASS_CONTENTS_INLINE);
+        
+        /* call draw commands, to present geometry data/triangles.*/
         {
-            /*To come later - call draw commands, to present geometry data/triangles.*/
+            struct vertex {
+                float x,y,z,w; // position.
+                float r,g,b;   // color.
+            };
+            VkBufferCreateInfo vertexInputBufferInfo{};
+            vertexInputBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            vertexInputBufferInfo.size = sizeof(vertex) * 3;
+            // what the buffer will hold.
+            vertexInputBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            // sharing/access level.
+            vertexInputBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            // create the buffer.
+            VkResult result = vkCreateBuffer(g_device,&vertexInputBufferInfo,nullptr,&m_vertexInputBuffer);
+            if(result != VK_SUCCESS) {
+                throw std::runtime_error("Couldn't Create a vertex buffer.");
+            }
+            /* allocate memory for buffers :
+                Get the memory information - type of memory required.
+                for our vertex buffer (we can't put the data just anywere)*/
+
+            VkMemoryRequirements vertBufferMemReq{};
+            vkGetBufferMemoryRequirements(g_device,m_vertexInputBuffer,&vertBufferMemReq);
+            VkMemoryAllocateInfo bufferAllocateInfo{};
+            bufferAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+            bufferAllocateInfo.allocationSize = vertBufferMemReq.size;
+            bufferAllocateInfo.pNext = nullptr;
+            
+            // the memory our vertex needs.
+            uint32_t vertexmemoryTypeBits = vertBufferMemReq.memoryTypeBits;
+            VkMemoryPropertyFlags vertexDesiredMemoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+            
+            VkPhysicalDeviceMemoryProperties memoryProperties;
+            vkGetPhysicalDeviceMemoryProperties(m_physicalDevice,&memoryProperties);
+            
+            /* Check each of the memory types and store the one we want. */
+            for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
+            {
+                VkMemoryType memoryType = memoryProperties.memoryTypes[i];
+                // is this the memory type we are looking for?
+                if(memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT){
+                    // Save location
+                    bufferAllocateInfo.memoryTypeIndex = i;
+                    // exit loop.
+                }
+            }
+            VkDeviceMemory vertexBufferMemory;
+            result = vkAllocateMemory(g_device,&bufferAllocateInfo,nullptr,&vertexBufferMemory);
+            if(result != VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate buffer mmeory");
+            }
+            // temporary pointer
+            void *mapped;
+            /* lock memor and set the temp pointer to point to the memory we want to write to*/
+            result = vkMapMemory(g_device,vertexBufferMemory,0,VK_WHOLE_SIZE,0,&mapped);
+            if(result != VK_SUCCESS) {
+                throw std::runtime_error("Failed to map buffer memory.");
+            }
+            // cast our temp pointer to a vertex type.
+            vertex *triangle = (vertex*) mapped;
+            /* Define our triangle vertices facing down the z-axis.*/
+            vertex v1 =
+            {
+                 -1.0f, -1.0f, 0.0f, 1.0f, // position
+                0.0f, 1.0f, 0.0f           // color
+            };
+            vertex v2 =
+            {
+                 1.0f, -1.0f, 0.0f, 1.0f,
+                1.0f, 0.0f, 0.0f
+            };
+            vertex v3 =
+            {
+                 0.0f, 1.0f, 0.0f, 1.0f,
+                0.0f, 0.0f, 1.0f
+            };
+            /* set triangle vertices on our locked allocated buffer. */
+            triangle[0] = v1;
+            triangle[1] = v2;
+            triangle[2] = v3;
+            vkUnmapMemory(g_device,vertexBufferMemory);
+            result = vkBindBufferMemory(g_device,m_vertexInputBuffer,vertexBufferMemory,0);
         }
         vkCmdEndRenderPass(g_drawCmdBuffer);
     }

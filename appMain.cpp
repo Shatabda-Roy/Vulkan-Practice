@@ -16,17 +16,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     apparatus::InitWindow _window{hInstance, SW_SHOW, WindowProc};
     g_hWnd = _window.g_hWnd;
     apparatus::InitVulkan _vulkan{g_hWnd,hInstance};
-    auto kk = _vulkan;
-    
     MSG msg = { };
     
     while (!g_shouldClose)
     {
         if(PeekMessageW(&msg,g_hWnd,NULL,NULL,PM_REMOVE)) {
             TranslateMessage(&msg);
-            DispatchMessage(&msg);    
+            DispatchMessage(&msg);
         }
-        _vulkan.render();
+        //_vulkan.render();
     }
     return EXIT_SUCCESS;
 }
